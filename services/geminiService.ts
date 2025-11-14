@@ -3,8 +3,7 @@ import { Source, CommandInfo } from '../types';
 
 let chat: Chat | null = null;
 let currentMode: 'cmd' | 'voiceaccess' | null = null;
-let apiKey: string | null = "AIzaSyBmkB4JqBuueQiZcbROMNRtxOGsElTs-NQ";
-const executeWindowsCommandFunctionDeclaration: FunctionDeclaration = {
+let apiKey: string | null = import.meta.env.VITE_GEMINI_API_KEY || null;const executeWindowsCommandFunctionDeclaration: FunctionDeclaration = {
   name: 'executeWindowsCommand',
   description: 'Generates a Windows CMD command to open or manage applications and provides an explanation. Use for tasks like opening programs (start chrome), system tools (taskmgr), etc.',
   parameters: {
