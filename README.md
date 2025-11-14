@@ -25,6 +25,28 @@ Un asistente de IA web, controlado por voz y texto, diseñado para ayudar a usua
 3.  Tu clave se guardará de forma segura en el almacenamiento local de tu navegador para futuras visitas.
 4.  ¡Listo! Ya puedes empezar a interactuar con el asistente.
 
+
+## 🔑 Configuración de la API Key
+
+Para que el asistente funcione correctamente, necesitas configurar tu clave de API de Google Gemini:
+
+### Obtener la API Key:
+1. Visita [Google AI Studio](https://aistudio.google.com/app/api-keys)
+2. Inicia sesión con tu cuenta de Google
+3. Haz clic en "Crear clave de API"
+4. Copia la clave generada
+
+### Configurar localmente:
+1. En la raíz del proyecto, crea un archivo `.env`:
+   ```bash
+   copy .env.example .env
+   ```
+2. Abre el archivo `.env` y reemplaza `your_api_key_here` con tu clave de API:
+   ```
+   VITE_GEMINI_API_KEY=tu_clave_api_aqui
+   ```
+
+**⚠️ IMPORTANTE:** Nunca compartas tu clave de API ni la subas a repositorios públicos. El archivo `.env` está incluido en `.gitignore` para proteger tus credenciales.
 ## ▶️ Desarrollo Local
 
 Si quieres ejecutar el proyecto en tu máquina local:
