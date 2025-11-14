@@ -3,7 +3,6 @@ import { Source, CommandInfo } from '../types';
 
 let chat: Chat | null = null;
 let currentMode: 'cmd' | 'voiceaccess' | null = null;
-let apiKey: string | null = null;
 
 const executeWindowsCommandFunctionDeclaration: FunctionDeclaration = {
   name: 'executeWindowsCommand',
@@ -43,26 +42,11 @@ const generateVoiceAccessCommandFunctionDeclaration: FunctionDeclaration = {
   },
 };
 
-const getApiKey = async (): Promise<string> => {
-    if (apiKey) {
-        return apiKey;
-    }
-    // The electronAPI is exposed via the preload script in an Electron environment.
-    if (window.electronAPI) {
-        const key = await window.electronAPI.getApiKey();
-        if (!key) {
-             throw new Error("API_KEY no encontrada. Asegúrate de que está configurada en tu archivo .env y que has reiniciado la aplicación.");
-        }
-        apiKey = key;
-        return apiKey;
-    }
-    // This part should not be reached in the Electron app.
-    throw new Error("No se pudo acceder al entorno seguro para obtener la API Key. La aplicación debe ejecutarse a través de Electron.");
-}
-
-const initializeChat = async (mode: 'cmd' | 'voiceaccess') => {
-  const key = await getApiKey();
-  const ai = new GoogleGenAI({ apiKey: key });
+const initializeChat = async (apiKey: string, mode: 'cmd' | 'voiceaccess') => {
+  if (!apiKey) {
+    throw new Error("API Key is required to initialize the chat.");
+  }
+  const ai = new GoogleGenAI({ apiKey });
 
   const isCmdMode = mode === 'cmd';
   
@@ -126,9 +110,9 @@ Tu respuesta SIEMPRE debe usar la función \`generateVoiceAccessCommand\`. La ex
   currentMode = mode;
 };
 
-export const sendMessageToGemini = async (message: string, mode: 'cmd' | 'voiceaccess'): Promise<{ text: string; sources: Source[]; commandInfo?: CommandInfo }> => {
+export const sendMessageToGemini = async (apiKey: string, message: string, mode: 'cmd' | 'voiceaccess'): Promise<{ text: string; sources: Source[]; commandInfo?: CommandInfo }> => {
   if (!chat || currentMode !== mode) {
-    await initializeChat(mode);
+    await initializeChat(apiKey, mode);
   }
 
   if (!chat) {
@@ -161,7 +145,8 @@ export const sendMessageToGemini = async (message: string, mode: 'cmd' | 'voicea
     return { text, sources: [], commandInfo: undefined };
   } catch (error) {
     console.error("Error sending message to Gemini:", error);
-    await initializeChat(mode); 
+    // Attempt to re-initialize chat on error, which can help with session timeouts
+    await initializeChat(apiKey, mode); 
     throw error;
   }
 };

@@ -1,6 +1,6 @@
-# Asistente de IA por Voz para Control de PC
+# Asistente de IA por Voz para Control de PC (Versión Web)
 
-Un asistente de IA de escritorio, controlado por voz y texto, diseñado para ayudar a usuarios con movilidad reducida a controlar su PC con Windows mediante lenguaje natural. La aplicación puede generar comandos para el Símbolo del sistema (CMD) y para la herramienta de accesibilidad Windows Voice Access.
+Un asistente de IA web, controlado por voz y texto, diseñado para ayudar a usuarios con movilidad reducida a controlar su PC con Windows mediante lenguaje natural. La aplicación puede generar comandos para el Símbolo del sistema (CMD) y para la herramienta de accesibilidad Windows Voice Access.
 
 ## ✨ Características
 
@@ -10,16 +10,24 @@ Un asistente de IA de escritorio, controlado por voz y texto, diseñado para ayu
 -   **Interfaz Futurista:** Diseño visual atractivo con animaciones y efectos.
 -   **Entrada Dual:** Interactúa mediante comandos de voz o escribiendo en el chat.
 -   **Respuesta por Voz:** El asistente lee sus respuestas en voz alta para una experiencia manos libres.
--   **Seguro y Local:** Se ejecuta como una aplicación de escritorio. Tu clave de API se almacena localmente y nunca sale de tu equipo.
--   **Multiplataforma (con Electron):** Empaquetado para una fácil instalación en Windows.
+-   **Seguro y Privado:** La aplicación se ejecuta 100% en tu navegador. Tu clave de API se almacena localmente en `localStorage` y nunca se envía a ningún servidor que no sea el de la API de Google.
 
-## 🚀 Requisitos Previos
+## 🚀 Requisitos
 
--   [Node.js](https://nodejs.org/) (versión 18.x o superior)
--   [npm](https://www.npmjs.com/) (generalmente viene con Node.js)
+-   Un navegador web moderno (Chrome, Firefox, Edge, Safari).
+-   Un micrófono para los comandos de voz.
 -   Una clave de API de [Google AI Studio (Gemini)](https://aistudio.google.com/app/apikey).
 
-## ⚙️ Instalación y Configuración
+## ⚙️ Uso
+
+1.  Abre la aplicación en tu navegador.
+2.  La primera vez, se te pedirá que introduzcas tu clave de API de Google Gemini. Pégala en el campo y haz clic en "Guardar".
+3.  Tu clave se guardará de forma segura en el almacenamiento local de tu navegador para futuras visitas.
+4.  ¡Listo! Ya puedes empezar a interactuar con el asistente.
+
+## ▶️ Desarrollo Local
+
+Si quieres ejecutar el proyecto en tu máquina local:
 
 1.  **Clonar el Repositorio:**
     ```bash
@@ -32,46 +40,8 @@ Un asistente de IA de escritorio, controlado por voz y texto, diseñado para ayu
     npm install
     ```
 
-3.  **Configurar la Clave de API:**
-    -   Busca el archivo llamado `.env.example` en la raíz del proyecto.
-    -   Crea una copia de este archivo y renómbrala a `.env`.
-    -   Abre el nuevo archivo `.env` y reemplaza `"YOUR_GEMINI_API_KEY"` con tu clave de API real de Google Gemini.
-
-    ```
-    # Contenido de tu archivo .env
-    API_KEY="aqui_va_tu_clave_real_de_gemini"
-    ```
-
-## ▶️ Uso (Modo Desarrollo)
-
-Para ejecutar la aplicación en modo de desarrollo, que te permite ver los cambios en tiempo real:
-
-1.  **Iniciar el Entorno de Desarrollo:**
+3.  **Iniciar el Servidor de Desarrollo:**
     ```bash
     npm run dev
     ```
-    Este comando compila el código de Electron y luego inicia el servidor de desarrollo de Vite para la interfaz y la aplicación Electron al mismo tiempo.
-
-2.  **Interactuar con el Asistente:**
-    -   Usa el micrófono o el campo de texto para dar tus instrucciones.
-    -   Cambia entre "Modo CMD" y "Modo Voice Access" según tus necesidades.
-
-## 📦 Crear el Ejecutable Instalable (Producción)
-
-Para empaquetar la aplicación en un archivo `.exe` instalable para Windows:
-
-1.  **Construir la Aplicación:**
-    ```bash
-    npm run dist
-    ```
-
-2.  **Encontrar el Instalador:**
-    -   El comando creará una carpeta `release` en la raíz del proyecto.
-    -   Dentro de `release`, encontrarás el archivo de instalación (ej. `Asistente de IA por Voz Setup 1.0.0.exe`).
-    -   Puedes distribuir y ejecutar este archivo para instalar la aplicación en cualquier PC con Windows.
-
-## ⌨️ Atajos de Teclado
-
--   `Ctrl + M`: Activar/Desactivar el micrófono.
--   `Ctrl + 1`: Cambiar a Modo CMD.
--   `Ctrl + 2`: Cambiar a Modo Voice Access.
+    La aplicación se abrirá en tu navegador en `http://localhost:5173`.

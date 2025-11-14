@@ -1,6 +1,6 @@
-export {};
+// These interfaces are now available throughout the project without explicit imports.
 
-// Fix: Add type definitions for the Web Speech API (SpeechRecognition) to resolve TypeScript errors.
+// Add type definitions for the Web Speech API (SpeechRecognition) to resolve TypeScript errors.
 // These interfaces describe the shape of the objects used for speech recognition.
 interface SpeechRecognitionEvent extends Event {
   readonly resultIndex: number;
@@ -62,12 +62,15 @@ declare var SpeechRecognition: {
 
 declare global {
   interface Window {
-    electronAPI: {
-      getApiKey: () => Promise<string>;
-    };
     // For browsers that support the standard SpeechRecognition API
     SpeechRecognition: typeof SpeechRecognition;
     // For browsers that support the prefixed version (e.g., older Chrome)
     webkitSpeechRecognition: typeof SpeechRecognition;
+    // Fix: Define the electronAPI object exposed by the preload script for type safety.
+    electronAPI: {
+      getApiKey: () => Promise<string>;
+    };
   }
 }
+// Fix: Add an empty export to treat this file as a module, which is required for global augmentation. This resolves errors with 'declare global' and allows types like 'webkitSpeechRecognition' to be recognized correctly.
+export {};
