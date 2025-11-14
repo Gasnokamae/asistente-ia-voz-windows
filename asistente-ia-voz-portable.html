@@ -1,0 +1,713 @@
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Asistente de IA por Voz (Portable)</title>
+    <style>
+        /* --- FONT IMPORT --- */
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Roboto:wght@300;400&display=swap');
+
+        /* --- GLOBAL STYLES & VARIABLES --- */
+        :root {
+            --cyan-glow: rgba(0, 255, 255, 0.8);
+            --purple-glow: rgba(192, 0, 255, 0.8);
+            --pink-glow: rgba(255, 0, 192, 0.8);
+            --red-glow: rgba(189, 4, 47, 0.8);
+            --bg-dark: #0a0a1a;
+        }
+
+        body {
+            background-color: var(--bg-dark);
+            font-family: 'Roboto', sans-serif;
+            overflow: hidden;
+            margin: 0;
+            color: #fff;
+        }
+
+        .font-orbitron {
+            font-family: 'Orbitron', sans-serif;
+        }
+
+        .animated-gradient {
+            background: linear-gradient(-45deg, #bd042f, #310642, #106245, #310642);
+            background-size: 400% 400%;
+            animation: gradient 25s ease infinite;
+        }
+
+        @keyframes gradient {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        /* --- CUSTOM SCROLLBAR --- */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: rgba(0,0,0,0.2); border-radius: 4px; }
+        ::-webkit-scrollbar-thumb { background: rgba(0, 255, 255, 0.3); border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: rgba(0, 255, 255, 0.5); }
+
+        /* --- PARTICLE EFFECTS --- */
+        #particle-container {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 0; pointer-events: none;
+        }
+        .particle {
+            position: absolute; background-color: var(--cyan-glow); border-radius: 50%; opacity: 0; animation: rise 15s infinite linear;
+        }
+        @keyframes rise {
+            0% { transform: translateY(100vh) scale(0.5); opacity: 0.1; }
+            50% { opacity: 0.5; }
+            100% { transform: translateY(-10vh) scale(1); opacity: 0; }
+        }
+
+        /* --- ANIMATIONS --- */
+        @keyframes fade-in {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        @keyframes fade-in-up {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .fade-in-up {
+            animation: fade-in-up 0.5s ease-out forwards;
+        }
+
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        .animate-spin {
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes pulse {
+            50% { opacity: .7; }
+        }
+        .animate-pulse {
+            animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+
+        /* --- AVATAR STYLES --- */
+        .orb-container { position: relative; width: 200px; height: 200px; margin: 0 auto; }
+        .orb {
+            position: absolute; top: 50%; left: 50%; width: 150px; height: 150px; transform: translate(-50%, -50%); border-radius: 50%;
+            background: radial-gradient(circle at 30% 30%, #a2fafa, #00ffff, #320a5c, #0a0a1a);
+            box-shadow: 0 0 10px #00ffff, 0 0 20px #00ffff, 0 0 40px #00ffff, 0 0 80px var(--cyan-glow), inset 0 0 20px rgba(255, 255, 255, 0.3);
+            animation: breathe 5s ease-in-out infinite; transition: transform 0.3s ease;
+        }
+        .orb-listening .orb { animation: breathe 2s ease-in-out infinite; transform: translate(-50%, -50%) scale(1.05); }
+        @keyframes breathe {
+            0%, 100% { transform: translate(-50%, -50%) scale(1); }
+            50% { transform: translate(-50%, -50%) scale(1.03); }
+        }
+        .wave { position: absolute; top: 50%; left: 50%; border-radius: 50%; border: 2px solid var(--cyan-glow); opacity: 0; pointer-events: none; }
+        .speaking .wave { animation: wave-animation 2s ease-out infinite; }
+        .speaking .wave-2 { animation-delay: 0.5s; }
+        .speaking .wave-3 { animation-delay: 1s; }
+        .speaking .wave-4 { animation-delay: 1.5s; }
+        @keyframes wave-animation {
+            0% { width: 150px; height: 150px; margin-top: -75px; margin-left: -75px; opacity: 0.8; }
+            100% { width: 300px; height: 300px; margin-top: -150px; margin-left: -150px; opacity: 0; }
+        }
+        
+        /* --- API KEY MODAL --- */
+        #api-key-modal {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.8);
+            display: flex; align-items: center; justify-content: center; z-index: 100; backdrop-filter: blur(10px);
+        }
+        .api-key-content {
+            background: var(--bg-dark); border: 1px solid var(--cyan-glow); border-radius: 1rem; padding: 2rem;
+            width: 90%; max-width: 500px; text-align: center; box-shadow: 0 0 30px var(--cyan-glow);
+            animation: fade-in-up 0.5s ease-out;
+        }
+        .api-key-content h2 { font-family: 'Orbitron', sans-serif; color: var(--cyan-glow); margin-top: 0; }
+        .api-key-content p { color: #ccc; }
+        .api-key-input {
+            width: 100%; background-color: #000; border: 1px solid #0ff; border-radius: 0.5rem; color: #fff;
+            padding: 0.75rem; margin: 1.5rem 0; font-size: 1rem; box-sizing: border-box;
+        }
+        .api-key-button {
+            background-color: var(--cyan-glow); color: #000; font-weight: bold; border: none; border-radius: 0.5rem;
+            padding: 0.75rem 1.5rem; cursor: pointer; font-size: 1rem; transition: background-color 0.3s;
+        }
+        .api-key-button:hover { background-color: #fff; }
+        .api-key-link { color: var(--cyan-glow); text-decoration: none; }
+        .api-key-link:hover { text-decoration: underline; }
+
+        /* --- HISTORY MODAL --- */
+        .history-modal-backdrop {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.8);
+            display: flex; align-items: center; justify-content: center; z-index: 100; backdrop-filter: blur(10px);
+            animation: fade-in 0.3s ease-out;
+        }
+        .history-modal-content {
+            background: var(--bg-dark); border: 1px solid var(--purple-glow); border-radius: 1rem; padding: 1.5rem;
+            width: 90%; max-width: 800px; height: 80vh; text-align: left; box-shadow: 0 0 40px var(--purple-glow);
+            display: flex; flex-direction: column; animation: fade-in-up 0.4s ease-out;
+        }
+        .history-modal-header {
+            display: flex; justify-content: space-between; align-items: center; padding-bottom: 1rem;
+            border-bottom: 1px solid var(--purple-glow); margin-bottom: 1rem;
+        }
+        .history-modal-header h2 { font-family: 'Orbitron', sans-serif; color: var(--purple-glow); margin: 0; }
+        .history-close-btn { background: none; border: none; color: #fff; font-size: 2rem; cursor: pointer; }
+        .history-controls { display: flex; flex-wrap: wrap; gap: 1rem; margin-bottom: 1rem; }
+        .history-controls input, .history-controls select {
+            background-color: #000; border: 1px solid var(--purple-glow); color: #fff; border-radius: 0.5rem;
+            padding: 0.5rem; font-size: 0.9rem; flex-grow: 1;
+        }
+        .history-list { flex-grow: 1; overflow-y: auto; padding-right: 0.5rem; }
+        .history-item {
+            background: rgba(255,255,255,0.05); padding: 0.75rem; border-radius: 0.5rem; margin-bottom: 0.75rem;
+            border-left: 3px solid;
+        }
+        .history-item-user { border-color: var(--cyan-glow); }
+        .history-item-model { border-color: var(--purple-glow); }
+        .history-item p { margin: 0; white-space: pre-wrap; word-break: break-word; }
+        .history-item-meta { font-size: 0.8rem; color: #9ca3af; margin-bottom: 0.25rem; }
+        .history-footer {
+            padding-top: 1rem; border-top: 1px solid var(--purple-glow); margin-top: 1rem;
+            display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 1rem;
+        }
+        .history-stats p { margin: 0; font-size: 0.9rem; color: #ccc; }
+        .history-actions button {
+            background: rgba(255,255,255,0.1); border: 1px solid #ccc; color: #fff; padding: 0.5rem 1rem;
+            border-radius: 0.5rem; cursor: pointer; transition: background-color 0.2s;
+        }
+        .history-actions button:hover { background: rgba(255,255,255,0.2); }
+        .history-actions button.delete-btn { border-color: var(--pink-glow); color: var(--pink-glow); }
+        .history-actions button.delete-btn:hover { background: rgba(255, 0, 192, 0.2); }
+    </style>
+</head>
+<body class="animated-gradient">
+    <div id="particle-container"></div>
+    <div id="root"></div>
+
+    <!-- Libraries -->
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/@google/generative-ai@0.14.1/dist/index.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <!-- Application -->
+    <script type="text/babel" data-presets="react">
+      
+        const { GoogleGenAI } = window.genai;
+        const { useState, useEffect, useRef, useCallback, useMemo } = React;
+
+        // --- GEMINI SERVICE ---
+        let chat = null;
+        let currentMode = null;
+        let genAI = null;
+
+        const initializeChat = (apiKey, mode) => {
+            if (!genAI) {
+                genAI = new GoogleGenAI({ apiKey });
+            }
+
+            const isCmdMode = mode === 'cmd';
+  
+            const systemInstruction = isCmdMode 
+                ? `Eres un asistente de IA conversacional y experto en la línea de comandos de Windows (CMD), diseñado para ayudar a una persona con paraplejia a controlar su PC. Tu objetivo es interpretar peticiones en español natural y convertirlas en comandos CMD funcionales usando la herramienta \`executeWindowsCommand\`. Responde siempre en español.`
+                : `Eres un asistente de IA experto en accesibilidad y control de PC, especializado en Windows Voice Access. Tu misión es ayudar a una persona con paraplejia a interactuar de forma fluida y natural con CUALQUIER aplicación. Interpreta sus peticiones en español conversacional y tradúcelas al comando de Voice Access MÁS PRECISO y EFECTIVO usando la herramienta \`generateVoiceAccessCommand\`. Responde siempre en español. Tu conocimiento debe cubrir clics, escritura, navegación de menús, control de ventanas, atajos y scroll. Tu respuesta SIEMPRE debe usar la función \`generateVoiceAccessCommand\`.`;
+
+            const tools = isCmdMode
+                ? [{ functionDeclarations: [{ name: 'executeWindowsCommand', description: 'Generates a Windows CMD command.', parameters: { type: "OBJECT", properties: { command: { type: "STRING" }, explanation: { type: "STRING" } }, required: ['command', 'explanation'] } }] }]
+                : [{ functionDeclarations: [{ name: 'generateVoiceAccessCommand', description: 'Generates a Windows Voice Access command.', parameters: { type: "OBJECT", properties: { command: { type: "STRING" }, explanation: { type: "STRING" } }, required: ['command', 'explanation'] } }] }];
+            
+            chat = genAI.chats.create({
+                model: 'gemini-2.5-flash',
+                config: { systemInstruction, tools },
+            });
+            currentMode = mode;
+        };
+
+        const sendMessageToGemini = async (apiKey, message, mode) => {
+            if (!chat || currentMode !== mode) {
+                initializeChat(apiKey, mode);
+            }
+
+            const result = await chat.sendMessage({ message });
+            
+            const functionCalls = result.functionCalls;
+            if (functionCalls && functionCalls.length > 0) {
+                const call = functionCalls[0];
+                const { command, explanation } = call.args;
+
+                if (call.name === 'executeWindowsCommand') {
+                    const commandInfo = { type: 'cmd', command, explanation };
+                    const introText = `He generado un comando CMD para ti. Como no puedo ejecutarlo directamente, tendrás que copiarlo y pegarlo en el Símbolo del sistema.`;
+                    return { text: introText, sources: [], commandInfo };
+                }
+                
+                if (call.name === 'generateVoiceAccessCommand') {
+                    const commandInfo = { type: 'voiceaccess', command, explanation };
+                    const introText = `Aquí tienes un comando para Windows Voice Access. Solo tienes que decirlo en voz alta mientras Voice Access está escuchando.`;
+                    return { text: introText, sources: [], commandInfo };
+                }
+            }
+            return { text: result.text, sources: [], commandInfo: undefined };
+        };
+
+
+        // --- ICONS ---
+        const BotIcon = ({ className = "w-6 h-6" }) => (<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className={className}><path fillRule="evenodd" d="M4.5 3.75a3 3 0 00-3 3v10.5a3 3 0 003 3h15a3 3 0 003-3V6.75a3 3 0 00-3-3h-15zm4.125 3a.75.75 0 000 1.5h6.75a.75.75 0 000-1.5h-6.75zm0 3.75a.75.75 0 000 1.5h6.75a.75.75 0 000-1.5h-6.75zm0 3.75a.75.75 0 000 1.5h6.75a.75.75 0 000-1.5h-6.75z" clipRule="evenodd" /></svg>);
+        const UserIcon = ({ className = "w-6 h-6" }) => (<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className={className}><path fillRule="evenodd" d="M7.5 6a4.5 4.5 0 119 0 4.5 4.5 0 01-9 0zM3.751 20.105a8.25 8.25 0 0116.498 0 .75.75 0 01-.437.695A18.683 18.683 0 0112 22.5c-2.786 0-5.433-.608-7.812-1.7a.75.75 0 01-.437-.695z" clipRule="evenodd" /></svg>);
+        const MicIcon = ({ className = "w-6 h-6" }) => (<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className={className}><path d="M8.25 4.5a3.75 3.75 0 117.5 0v8.25a3.75 3.75 0 11-7.5 0V4.5z" /><path d="M6 10.5a.75.75 0 01.75.75v1.5a5.25 5.25 0 1010.5 0v-1.5a.75.75 0 011.5 0v1.5a6.75 6.75 0 11-13.5 0v-1.5A.75.75 0 016 10.5z" /></svg>);
+        const LoadingIcon = ({ className = "w-6 h-6" }) => (<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" className={`${className} animate-spin`}><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>);
+        const SendIcon = ({ className = "w-6 h-6" }) => (<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className={className} aria-hidden="true"><path d="M3.478 2.405a.75.75 0 00-.926.94l2.432 7.905H13.5a.75.75 0 010 1.5H4.984l-2.432 7.905a.75.75 0 00.926.94 60.519 60.519 0 0018.445-8.986.75.75 0 000-1.218A60.517 60.517 0 003.478 2.405z" /></svg>);
+        const VoiceAccessIcon = ({ className = "w-6 h-6" }) => (<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className={className}><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" /><path d="M19 10v2a7 7 0 0 1-14 0v-2H3v2a9 9 0 0 0 8 8.94V24h2v-3.06A9 9 0 0 0 21 12v-2h-2z" /></svg>);
+        const TerminalIcon = ({ className }) => (<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><polyline points="4 17 10 11 4 5" /><line x1="12" y1="19" x2="20" y2="19" /></svg>);
+        const ClipboardIcon = ({ className }) => (<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" /><rect x="8" y="2" width="8" height="4" rx="1" ry="1" /></svg>);
+
+        // --- COMPONENTS ---
+        const Avatar = ({ isSpeaking, isListening }) => (
+            <div className={`orb-container ${isSpeaking ? 'speaking' : ''} ${isListening ? 'orb-listening' : ''}`}>
+                <div className="wave wave-1"></div>
+                <div className="wave wave-2"></div>
+                <div className="wave wave-3"></div>
+                <div className="wave wave-4"></div>
+                <div className="orb"></div>
+            </div>
+        );
+
+        const ChatBubble = ({ message }) => {
+            const isUser = message.role === 'user';
+            const Icon = isUser ? UserIcon : BotIcon;
+            return (
+                <div className={`flex items-start my-4 ${isUser ? 'justify-end' : 'justify-start'} fade-in-up`} style={{ display: 'flex', alignItems: 'flex-start', margin: '1rem 0', animation: 'fade-in-up 0.5s ease-out forwards', justifyContent: isUser ? 'flex-end' : 'flex-start' }}>
+                    <div className={`flex-shrink-0 ${isUser ? 'ml-3 order-2' : 'mr-3 order-1'}`} style={{ flexShrink: 0, order: isUser ? 2 : 1, marginLeft: isUser ? '0.75rem' : 0, marginRight: isUser ? 0 : '0.75rem' }}>
+                        <div style={{ width: '2.5rem', height: '2.5rem', borderRadius: '50%', backgroundColor: 'rgba(0,0,0,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid #4a5568' }}>
+                            <Icon className={`w-6 h-6 ${isUser ? 'text-cyan-300' : 'text-purple-300'}`} style={{ width: '1.5rem', height: '1.5rem', color: isUser ? '#67e8f9' : '#c084fc' }} />
+                        </div>
+                    </div>
+                    <div className={`max-w-md md:max-w-2xl ${isUser ? 'order-1' : 'order-2'}`} style={{ maxWidth: '42rem', order: isUser ? 1 : 2 }}>
+                        <div className={`px-5 py-3 rounded-2xl shadow-lg border text-gray-200 backdrop-blur-sm ${isUser ? 'bg-cyan-500/10 border-cyan-500/20 rounded-br-none' : 'bg-purple-500/10 border-purple-500/20 rounded-bl-none'}`} style={{ padding: '0.75rem 1.25rem', borderRadius: '1rem', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -2px rgba(0,0,0,0.05)', border: '1px solid', color: '#e5e7eb', backdropFilter: 'blur(4px)', backgroundColor: isUser ? 'rgba(6,182,212,0.1)' : 'rgba(168,85,247,0.1)', borderColor: isUser ? 'rgba(6,182,212,0.2)' : 'rgba(168,85,247,0.2)', borderBottomRightRadius: isUser ? 0 : '1rem', borderBottomLeftRadius: isUser ? '1rem' : 0 }}>
+                            <p style={{ fontSize: '1.125rem', lineHeight: '1.75', whiteSpace: 'pre-wrap' }}>{message.text}</p>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        const CommandBubble = ({ commandInfo, introText }) => {
+            const [copyText, setCopyText] = useState('Copiar');
+            const handleCopy = () => { navigator.clipboard.writeText(commandInfo.command); setCopyText('¡Copiado!'); setTimeout(() => setCopyText('Copiar'), 2000); };
+            const isCmdMode = commandInfo.type === 'cmd';
+            const Icon = isCmdMode ? <TerminalIcon className="w-6 h-6 text-cyan-300" style={{width: '1.5rem', height:'1.5rem', color: '#67e8f9'}}/> : <VoiceAccessIcon className="w-6 h-6 text-purple-300" style={{width: '1.5rem', height:'1.5rem', color: '#c084fc'}}/>;
+
+            return (
+                 <div className="flex items-start my-4 justify-start fade-in-up" style={{ display: 'flex', alignItems: 'flex-start', margin: '1rem 0', justifyContent: 'flex-start', animation: 'fade-in-up 0.5s ease-out forwards' }}>
+                    <div style={{ flexShrink: 0, marginRight: '0.75rem' }}>
+                        <div style={{ width: '2.5rem', height: '2.5rem', borderRadius: '50%', backgroundColor: 'rgba(0,0,0,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid #4a5568' }}>{Icon}</div>
+                    </div>
+                    <div style={{ maxWidth: '42rem' }}>
+                        <div style={{ padding: '0.75rem 1.25rem', borderRadius: '1rem', borderBottomLeftRadius: 0, boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -2px rgba(0,0,0,0.05)', backdropFilter: 'blur(4px)', backgroundColor: 'rgba(168,85,247,0.1)', border: '1px solid rgba(168,85,247,0.2)', color: '#e5e7eb' }}>
+                            {introText && <p style={{ fontSize: '1.125rem', lineHeight: '1.75', whiteSpace: 'pre-wrap', marginBottom: '1rem' }}>{introText}</p>}
+                            <div style={{ backgroundColor: 'rgba(0,0,0,0.3)', border: '1px solid rgba(113,113,122,0.5)', borderRadius: '0.5rem', padding: '1rem' }}>
+                                <h3 style={{ fontSize: '0.875rem', fontWeight: 600, color: '#9ca3af', marginBottom: '0.5rem', textTransform: 'uppercase', letterSpacing: '0.05em' }} className="font-orbitron">{isCmdMode ? 'Comando CMD' : 'Comando de Voice Access'}</h3>
+                                {isCmdMode ? (
+                                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', backgroundColor: 'rgba(0,0,0,0.5)', padding: '0.75rem', borderRadius: '0.375rem', fontFamily: 'monospace', color: '#67e8f9', border: '1px solid rgba(6,182,212,0.2)' }}>
+                                        <span style={{ wordBreak: 'break-all' }}>{commandInfo.command}</span>
+                                        <button onClick={handleCopy} style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: '0.5rem', backgroundColor: '#1f2937', color: '#e5e7eb', padding: '0.25rem 0.75rem', borderRadius: '0.375rem', fontSize: '0.875rem', border: '1px solid #4b5563', cursor: 'pointer' }}>
+                                            <ClipboardIcon className="w-4 h-4" style={{width: '1rem', height: '1rem'}} />{copyText}
+                                        </button>
+                                    </div>
+                                ) : (
+                                    <div style={{ backgroundColor: 'rgba(0,0,0,0.5)', padding: '1rem', borderRadius: '0.375rem', color: '#c084fc', fontSize: '1.125rem', fontWeight: 500, fontStyle: 'italic', border: '1px solid rgba(168,85,247,0.2)' }}>
+                                        <p style={{ textAlign: 'center', margin: 0 }}>"{commandInfo.command}"</p>
+                                    </div>
+                                )}
+                                <p style={{ color: '#d1d5db', marginTop: '0.75rem', fontSize: '0.875rem' }}>{commandInfo.explanation}</p>
+                            </div>
+                            {isCmdMode ? (
+                                <div style={{ marginTop: '1rem', backgroundColor: 'rgba(127,29,29,0.3)', border: '1px solid rgba(185,28,28,0.4)', color: '#fcd34d', padding: '0.75rem', borderRadius: '0.5rem', fontSize: '0.875rem' }}>
+                                    <p><strong style={{fontWeight: 600}}>Advertencia:</strong> Por seguridad, esta aplicación no puede ejecutar comandos. Cópialo y pégalo manualmente en el Símbolo del sistema.</p>
+                                </div>
+                            ) : (
+                                <div style={{ marginTop: '1rem', backgroundColor: 'rgba(76,29,149,0.3)', border: '1px solid rgba(109,40,217,0.4)', color: '#c4b5fd', padding: '0.75rem', borderRadius: '0.5rem', fontSize: '0.875rem' }}>
+                                    <p><strong style={{fontWeight: 600}}>Instrucción:</strong> Di este comando en voz alta mientras Windows Voice Access está activo.</p>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        const MicButton = ({ isListening, isProcessing, isSpeaking, onClick }) => {
+            const isDisabled = isProcessing || isSpeaking;
+            let buttonClasses = 'bg-cyan-500/20 hover:bg-cyan-500/30 border-cyan-400 shadow-cyan-500/30';
+            let icon = <MicIcon className="w-7 h-7" style={{width:'1.75rem', height:'1.75rem'}}/>;
+            
+            if (isProcessing) { buttonClasses = 'bg-gray-700/50 border-gray-600 cursor-not-allowed'; icon = <LoadingIcon className="w-7 h-7" style={{width:'1.75rem', height:'1.75rem'}}/>; } 
+            else if (isSpeaking) { buttonClasses = 'bg-gray-700/50 border-gray-600 cursor-not-allowed'; icon = <MicIcon className="w-7 h-7 text-gray-500" style={{width:'1.75rem', height:'1.75rem', color: '#6b7280'}}/>; } 
+            else if (isListening) { buttonClasses = 'bg-pink-500/30 hover:bg-pink-500/40 border-pink-400 shadow-pink-500/40 animate-pulse'; }
+
+            const baseStyle = { width: '3.5rem', height: '3.5rem', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', transition: 'all 0.3s ease-in-out', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -2px rgba(0,0,0,0.05)', border: '1px solid', cursor: 'pointer'};
+            const styles = { ...baseStyle };
+
+            if (isDisabled) styles.cursor = 'not-allowed';
+
+            return <button onClick={onClick} disabled={isDisabled} style={styles} className={buttonClasses}><div style={{width:'1.75rem', height:'1.75rem'}}>{icon}</div></button>;
+        };
+
+        const ApiKeyModal = ({ onSave }) => {
+            const [key, setKey] = useState('');
+            return (
+                <div id="api-key-modal">
+                    <div className="api-key-content">
+                        <h2>Configuración Requerida</h2>
+                        <p>Por favor, ingresa tu clave de API de Google Gemini para continuar. Tu clave se guardará localmente en tu navegador.</p>
+                        <input 
+                            type="password" 
+                            className="api-key-input"
+                            value={key}
+                            onChange={(e) => setKey(e.target.value)}
+                            placeholder="Pega tu API Key aquí"
+                        />
+                        <button className="api-key-button" onClick={() => key && onSave(key)}>Guardar y Empezar</button>
+                        <p style={{marginTop: '1rem', fontSize: '0.8rem'}}><a href="https://aistudio.google.com/app/apikey" target="_blank" className="api-key-link">Obtén una clave de API aquí</a></p>
+                    </div>
+                </div>
+            );
+        };
+        
+        const HistoryModal = ({ isOpen, onClose, history, onClearHistory }) => {
+            if (!isOpen) return null;
+
+            const [searchTerm, setSearchTerm] = useState('');
+            const [filterType, setFilterType] = useState('all');
+            const [filterDate, setFilterDate] = useState('');
+
+            const downloadFile = (content, fileName, contentType) => {
+                const a = document.createElement("a");
+                const file = new Blob([content], { type: contentType });
+                a.href = URL.createObjectURL(file);
+                a.download = fileName;
+                a.click();
+                URL.revokeObjectURL(a.href);
+            };
+
+            const handleExportJSON = () => {
+                downloadFile(JSON.stringify(history, null, 2), "historial-chat.json", "application/json");
+            };
+
+            const handleExportTXT = () => {
+                const textContent = history.map(item => {
+                    const date = new Date(item.timestamp).toLocaleString('es-ES');
+                    const type = item.role === 'user' ? 'Usuario' : 'Asistente';
+                    return `[${date}] ${type}:\n${item.text}\n--------------------`;
+                }).join('\n\n');
+                downloadFile(textContent, "historial-chat.txt", "text/plain");
+            };
+            
+            const filteredHistory = useMemo(() => {
+                return history
+                    .filter(item => {
+                        const itemDate = new Date(item.timestamp);
+                        const filterDay = filterDate ? new Date(filterDate) : null;
+                        
+                        const matchesDate = !filterDay || (
+                            itemDate.getFullYear() === filterDay.getFullYear() &&
+                            itemDate.getMonth() === filterDay.getMonth() &&
+                            itemDate.getDate() === filterDay.getDate()
+                        );
+                        
+                        const matchesType = filterType === 'all' || item.role === filterType;
+                        
+                        const matchesSearch = item.text.toLowerCase().includes(searchTerm.toLowerCase());
+
+                        return matchesDate && matchesType && matchesSearch;
+                    })
+                    .slice() 
+                    .reverse();
+            }, [history, searchTerm, filterType, filterDate]);
+
+            const stats = useMemo(() => ({
+                total: history.length,
+                user: history.filter(m => m.role === 'user').length,
+                model: history.filter(m => m.role === 'model').length,
+            }), [history]);
+
+            return (
+                <div className="history-modal-backdrop">
+                    <div className="history-modal-content">
+                        <div className="history-modal-header">
+                            <h2>📋 Historial de Comandos y Respuestas</h2>
+                            <button onClick={onClose} className="history-close-btn">&times;</button>
+                        </div>
+                        <div className="history-controls">
+                            <input type="text" placeholder="Buscar en el historial..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
+                            <select value={filterType} onChange={e => setFilterType(e.target.value)}>
+                                <option value="all">Todos los tipos</option>
+                                <option value="user">Usuario</option>
+                                <option value="model">Asistente</option>
+                            </select>
+                            <input type="date" value={filterDate} onChange={e => setFilterDate(e.target.value)} />
+                        </div>
+                        <div className="history-list">
+                            {filteredHistory.length > 0 ? filteredHistory.map(item => (
+                                <div key={item.timestamp + item.text} className={`history-item history-item-${item.role}`}>
+                                    <div className="history-item-meta">
+                                        <span>{item.role === 'user' ? 'Tú' : 'Asistente'}</span> - <span>{new Date(item.timestamp).toLocaleString('es-ES')}</span>
+                                    </div>
+                                    <p>{item.text}</p>
+                                </div>
+                            )) : <p style={{textAlign: 'center', color: '#9ca3af', marginTop: '2rem'}}>No se encontraron entradas.</p>}
+                        </div>
+                        <div className="history-footer">
+                            <div className="history-stats">
+                                <p><strong>Estadísticas:</strong> {stats.total} Totales | {stats.user} Usuario | {stats.model} Asistente</p>
+                            </div>
+                            <div className="history-actions">
+                                <button onClick={handleExportJSON}>Exportar JSON</button>
+                                <button onClick={handleExportTXT}>Exportar TXT</button>
+                                <button onClick={onClearHistory} className="delete-btn">Borrar Historial</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+
+        // --- MAIN APP ---
+        const App = () => {
+          const [apiKey, setApiKey] = useState(null);
+          const [mode, setMode] = useState('cmd');
+          const [messages, setMessages] = useState([]);
+          const [isListening, setIsListening] = useState(false);
+          const [isProcessing, setIsProcessing] = useState(false);
+          const [isSpeaking, setIsSpeaking] = useState(false);
+          const [inputText, setInputText] = useState('');
+          const [statusText, setStatusText] = useState('Haz clic en el micrófono o escribe un mensaje');
+          const [showWelcome, setShowWelcome] = useState(true);
+          const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
+
+          const recognitionRef = useRef(null);
+          const chatEndRef = useRef(null);
+
+          useEffect(() => {
+              const savedKey = localStorage.getItem('gemini_api_key');
+              if (savedKey) setApiKey(savedKey);
+
+              const persistedMode = localStorage.getItem('appMode');
+              if (persistedMode === 'cmd' || persistedMode === 'voiceaccess') setMode(persistedMode);
+
+              try {
+                const savedHistory = localStorage.getItem('chat_history');
+                if (savedHistory) {
+                    const parsedHistory = JSON.parse(savedHistory);
+                    if (Array.isArray(parsedHistory) && parsedHistory.length > 0) {
+                        setMessages(parsedHistory);
+                        setShowWelcome(false);
+                    }
+                }
+              } catch (e) {
+                console.error("Failed to load history from localStorage", e);
+                localStorage.removeItem('chat_history');
+              }
+          }, []);
+
+          useEffect(() => {
+            if (messages.length > 0) {
+                try {
+                    localStorage.setItem('chat_history', JSON.stringify(messages));
+                } catch (e) {
+                    console.error("Failed to save history to localStorage", e);
+                }
+            }
+          }, [messages]);
+
+          const handleSaveApiKey = (key) => {
+              localStorage.setItem('gemini_api_key', key);
+              setApiKey(key);
+          };
+          
+          const handleClearHistory = () => {
+            if (window.confirm('¿Estás seguro de que quieres borrar todo el historial? Esta acción no se puede deshacer.')) {
+                setMessages([]);
+                localStorage.removeItem('chat_history');
+                setShowWelcome(true);
+                setIsHistoryModalOpen(false);
+            }
+          };
+          
+          const scrollToBottom = () => { chatEndRef.current?.scrollIntoView({ behavior: 'smooth' }); };
+          useEffect(() => { scrollToBottom(); }, [messages]);
+
+          useEffect(() => {
+            const container = document.getElementById('particle-container');
+            if (container && container.children.length === 0) {
+              for (let i = 0; i < 30; i++) {
+                const particle = document.createElement('div');
+                particle.classList.add('particle');
+                const size = Math.random() * 3 + 1;
+                particle.style.width = `${size}px`; particle.style.height = `${size}px`;
+                particle.style.left = `${Math.random() * 100}%`; particle.style.animationDelay = `${Math.random() * 15}s`;
+                particle.style.animationDuration = `${Math.random() * 10 + 10}s`;
+                const randomColor = Math.random();
+                if (randomColor > 0.66) { particle.style.backgroundColor = 'var(--purple-glow)'; }
+                else if (randomColor > 0.33) { particle.style.backgroundColor = 'var(--red-glow)'; }
+                container.appendChild(particle);
+              }
+            }
+          }, []);
+
+          const speak = useCallback((text) => {
+            if ('speechSynthesis' in window && text) {
+              speechSynthesis.cancel();
+              const utterance = new SpeechSynthesisUtterance(text);
+              utterance.lang = 'es-ES'; utterance.rate = 1.1; utterance.pitch = 1.0;
+              utterance.onstart = () => { setIsSpeaking(true); setStatusText('Hablando...'); if (recognitionRef.current && isListening) { recognitionRef.current.stop(); } };
+              utterance.onend = () => { setIsSpeaking(false); if (!isProcessing && !isListening) { setStatusText('Haz clic en el micrófono o escribe un mensaje'); } };
+              utterance.onerror = () => { setIsSpeaking(false); };
+              speechSynthesis.speak(utterance);
+            }
+          }, [isListening, isProcessing]);
+
+          useEffect(() => {
+            const lastMessage = messages[messages.length - 1];
+            if (lastMessage && lastMessage.role === 'model') { speak(lastMessage.text); }
+          }, [messages, speak]);
+          
+          const handleSendMessage = useCallback(async (messageText) => {
+            if (!messageText.trim() || isProcessing || isSpeaking || !apiKey) return;
+            setShowWelcome(false);
+            if ('speechSynthesis' in window) { speechSynthesis.cancel(); setIsSpeaking(false); }
+            if (isListening) { recognitionRef.current?.stop(); }
+
+            setMessages((prev) => [...prev, { role: 'user', text: messageText.trim(), timestamp: new Date().toISOString() }]);
+            setInputText(''); setIsProcessing(true); setStatusText('Pensando...');
+
+            try {
+              const response = await sendMessageToGemini(apiKey, messageText.trim(), mode);
+              setMessages((prev) => [...prev, { role: 'model', ...response, timestamp: new Date().toISOString() }]);
+            } catch (error) {
+                console.error("Error:", error);
+                setMessages((prev) => [...prev, { role: 'model', text: `Lo siento, ocurrió un error. Verifica tu API Key y la consola.`, sources: [], timestamp: new Date().toISOString() }]);
+            } finally {
+              setIsProcessing(false);
+              if (!('speechSynthesis' in window) || !messages[messages.length - 1]?.text) { setStatusText('Haz clic en el micrófono o escribe un mensaje'); }
+            }
+          }, [apiKey, isProcessing, isListening, isSpeaking, mode, messages]);
+
+          const handleMicClick = useCallback(() => {
+            if (isProcessing || isSpeaking) return;
+            if (isListening) { recognitionRef.current?.stop(); } 
+            else { if ('speechSynthesis' in window) { speechSynthesis.cancel(); setIsSpeaking(false); } setInputText(''); recognitionRef.current?.start(); }
+          }, [isProcessing, isListening, isSpeaking]);
+
+          const handleModeChange = useCallback((newMode) => {
+            if (newMode === mode) return;
+            if (isListening) { recognitionRef.current?.stop(); }
+            if ('speechSynthesis' in window) { speechSynthesis.cancel(); }
+            localStorage.setItem('appMode', newMode);
+            setMode(newMode); setShowWelcome(false);
+            const infoMessage = newMode === 'voiceaccess' 
+              ? { role: 'model', text: 'Modo Voice Access Avanzado activado.\n\nAhora puedes controlar aplicaciones, hacer clic en botones, escribir, navegar menús y mucho más.', timestamp: new Date().toISOString() }
+              : { role: 'model', text: 'Modo CMD activado.\n\nAhora generaré comandos de texto para la consola.', timestamp: new Date().toISOString() };
+            setMessages(prev => [...prev, infoMessage]); setStatusText('Haz clic en el micrófono o escribe un mensaje');
+          }, [mode, isListening]);
+
+          useEffect(() => {
+            const SpeechRecognitionAPI = window.SpeechRecognition || window.webkitSpeechRecognition;
+            if (!SpeechRecognitionAPI) { setStatusText('El reconocimiento de voz no es compatible.'); return; }
+            const recognition = new SpeechRecognitionAPI();
+            recognition.continuous = false; recognition.interimResults = true; recognition.lang = 'es-ES';
+            recognition.onstart = () => { setIsListening(true); setStatusText('Escuchando...'); };
+            recognition.onend = () => { setIsListening(false); if (!isProcessing && !isSpeaking) { setStatusText('Haz clic en el micrófono o escribe un mensaje'); } };
+            recognition.onerror = (event) => { if (event.error !== 'no-speech') { console.error('Speech recognition error:', event.error, event.message); setStatusText(`Error de voz: ${event.error}`); } };
+            recognition.onresult = (event) => { let finalTranscript = ''; for (let i = event.resultIndex; i < event.results.length; ++i) { if (event.results[i].isFinal) { finalTranscript += event.results[i][0].transcript; } } if (finalTranscript.trim()) { handleSendMessage(finalTranscript.trim()); } };
+            recognitionRef.current = recognition;
+            return () => { recognitionRef.current?.stop(); };
+          }, [handleSendMessage, isProcessing, isSpeaking]);
+
+          const isInputDisabled = isProcessing || isListening || isSpeaking;
+          
+          if (!apiKey) {
+            return <ApiKeyModal onSave={handleSaveApiKey} />;
+          }
+
+          return (
+            <div style={{display:'flex', flexDirection:'column', height:'100vh', color:'#fff', fontFamily:'Roboto, sans-serif', backdropFilter:'blur(20px)', backgroundColor:'rgba(0,0,0,0.3)'}}>
+              <div style={{position:'absolute', top:0, left:0, width:'100%', height:'100%', zIndex:0, background:'radial-gradient(ellipse at top, rgba(0, 255, 255, 0.1), transparent 60%), radial-gradient(ellipse at bottom, rgba(189, 4, 47, 0.1), transparent 60%)'}}/>
+              
+              <header style={{position:'relative', padding:'1rem', backgroundColor:'rgba(0,0,0,0.2)', backdropFilter:'blur(10px)', borderBottom:'1px solid rgba(6,182,212,0.2)', boxShadow:'0 10px 15px -3px rgba(6,182,212,0.1)', zIndex:10, display: 'flex', alignItems: 'center', justifyContent: 'space-between'}}>
+                <div style={{width: '120px'}}></div>
+                <h1 style={{fontSize:'1.5rem', fontWeight:'bold', textAlign:'center', color:'#e5e7eb', letterSpacing:'0.1em', textTransform:'uppercase', flex: 1}} className="font-orbitron">Asistente de IA</h1>
+                <button onClick={() => setIsHistoryModalOpen(true)} style={{background: 'rgba(255,255,255,0.1)', border: '1px solid #ccc', color: '#fff', padding: '0.5rem 1rem', borderRadius: '0.5rem', cursor: 'pointer', transition: 'background-color 0.2s', width: '120px'}}>📋 Historial</button>
+              </header>
+              
+              <main style={{flex:'1 1 0%', overflowY:'auto', padding:'1rem', display:'flex', flexDirection:'column', zIndex:10}}>
+                <div style={{maxWidth:'56rem', width:'100%', margin:'0 auto', flex:'1 1 0%', display:'flex', flexDirection:'column', justifyContent:'flex-end'}}>
+                  {showWelcome ? (
+                     <div style={{textAlign:'center', margin:'auto 0', padding:'0 1rem'}} className="fade-in-up">
+                        <Avatar isSpeaking={isSpeaking} isListening={isListening} />
+                        <h2 style={{fontSize:'2.25rem', marginTop:'2rem', marginBottom:'1rem', color:'#67e8f9'}} className="font-orbitron">Bienvenido al Futuro</h2>
+                        <p style={{fontSize:'1.125rem', color:'#d1d5db', maxWidth:'42rem', margin:'0 auto'}}>
+                            Interactúa usando comandos de PC o Voice Access. Tu asistente personal está listo.
+                        </p>
+                    </div>
+                  ) : (
+                    <>
+                      {messages.map((msg, index) => msg.role === 'model' && msg.commandInfo ? (<CommandBubble key={msg.timestamp + index} commandInfo={msg.commandInfo} introText={msg.text} />) : (<ChatBubble key={msg.timestamp + index} message={msg} />))}
+                    </>
+                  )}
+                  <div ref={chatEndRef} />
+                </div>
+                {!showWelcome && messages.length < 2 && (
+                     <div style={{width:'100%', display:'flex', justifyContent:'center', padding:'2rem 0'}}>
+                        <Avatar isSpeaking={isSpeaking} isListening={isListening} />
+                    </div>
+                )}
+              </main>
+
+              <footer style={{position:'relative', padding:'1rem', backgroundColor:'rgba(0,0,0,0.2)', backdropFilter:'blur(10px)', borderTop:'1px solid rgba(6,182,212,0.2)', zIndex:10}}>
+                <div style={{maxWidth:'56rem', margin:'0 auto'}}>
+                    <div style={{display:'flex', alignItems:'center', gap:'1rem'}}>
+                      <div style={{flex:'1 1 0%', position:'relative'}}>
+                        <input
+                          type="text" value={inputText} onChange={(e) => setInputText(e.target.value)}
+                          onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSendMessage(inputText); } }}
+                          placeholder={'Escribe tu mensaje...'} disabled={isInputDisabled}
+                          style={{width:'100%', backgroundColor:'rgba(0,0,0,0.3)', border:'1px solid rgba(6,182,212,0.3)', borderRadius:'9999px', padding:'0.75rem 3.5rem 0.75rem 1.25rem', fontSize:'1.125rem', color:'#e5e7eb', transition:'box-shadow 0.2s', outline:'none'}}
+                          aria-label="Entrada de texto para mensajes"
+                        />
+                        <button
+                          onClick={() => handleSendMessage(inputText)} disabled={!inputText.trim() || isInputDisabled}
+                          style={{position:'absolute', right:'0.75rem', top:'50%', transform:'translateY(-50%)', padding:'0.5rem', borderRadius:'9999px', color:'#67e8f9', cursor: isInputDisabled || !inputText.trim() ? 'not-allowed' : 'pointer', opacity: isInputDisabled || !inputText.trim() ? 0.5 : 1}}
+                          aria-label="Enviar mensaje"
+                        >
+                          <SendIcon className="w-6 h-6" style={{width:'1.5rem', height:'1.5rem'}} />
+                        </button>
+                      </div>
+                      <MicButton isListening={isListening} isProcessing={isProcessing} isSpeaking={isSpeaking} onClick={handleMicClick} />
+                    </div>
+                    <div style={{display:'flex', justifyContent:'center', alignItems:'center', gap:'1rem', margin:'0.75rem 0'}}>
+                      <button onClick={() => handleModeChange('cmd')} style={{padding:'0.5rem 1rem', borderRadius:'9999px', fontSize:'0.875rem', fontWeight:600, transition:'all 0.3s', border: '1px solid', backgroundColor: mode === 'cmd' ? 'rgba(6,182,212,0.2)' : 'rgba(0,0,0,0.2)', borderColor: mode === 'cmd' ? '#67e8f9' : '#4b5563', color: '#fff', cursor:'pointer'}}>Modo CMD</button>
+                      <button onClick={() => handleModeChange('voiceaccess')} style={{padding:'0.5rem 1rem', borderRadius:'9999px', fontSize:'0.875rem', fontWeight:600, transition:'all 0.3s', border: '1px solid', backgroundColor: mode === 'voiceaccess' ? 'rgba(168,85,247,0.2)' : 'rgba(0,0,0,0.2)', borderColor: mode === 'voiceaccess' ? '#c084fc' : '#4b5563', color: '#fff', cursor:'pointer'}}>Modo Voice Access</button>
+                    </div>
+                    <p style={{color:'#9ca3af', textAlign:'center', fontSize:'0.875rem', height:'1.25rem'}} className="font-orbitron">{statusText}</p>
+                </div>
+              </footer>
+
+              <HistoryModal 
+                isOpen={isHistoryModalOpen} 
+                onClose={() => setIsHistoryModalOpen(false)}
+                history={messages}
+                onClearHistory={handleClearHistory}
+              />
+            </div>
+          );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+
+    </script>
+</body>
+</html>

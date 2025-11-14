@@ -1,0 +1,7 @@
+{
+  "name": "Asistente de IA por Voz",
+  "description": "Un asistente de IA controlado por voz diseñado para usuarios con movilidad reducida. Esta aplicación proporciona una interfaz de chatbot manos libres para interactuar con un potente modelo de IA utilizando solo comandos de voz.",
+  "requestFramePermissions": [
+    "microphone"
+  ]
+}
